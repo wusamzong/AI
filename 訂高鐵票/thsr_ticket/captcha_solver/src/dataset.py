@@ -58,7 +58,7 @@ def transforms(img_dir, img_name, pre=False):
     return data
 
 class Data(data.Dataset):
-    def __init__(self, train, pre_process=False, dir='../captcha'):
+    def __init__(self, train, pre_process=False, dir='./captcha/'):
         """__init__ method.
 
         The __init__ method may be documented in either the class level
@@ -84,7 +84,7 @@ class Data(data.Dataset):
         # random.shuffle(self.png_list)
 
 
-    def load_csv(self, name='label.csv'):
+    def load_csv(self, name='label2.csv'):
         """load label csv.
 
         Args:

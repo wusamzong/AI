@@ -19,7 +19,7 @@ from thsr_ticket.view.web.confirm_ticket_info import ConfirmTicketInfo
 from thsr_ticket.view.web.show_booking_result import ShowBookingResult
 from thsr_ticket.view.common import history_info
 from thsr_ticket.model.db import ParamDB, Record
-
+from thsr_ticket.ml.captcha_solver import solve_captcha
 
 class BookingFlow:
     def __init__(self) -> None:
@@ -127,15 +127,20 @@ class BookingFlow:
             self.confirm_ticket.phone = self.confirm_ticket_info.phone_info()
 
     def input_security_code(self) -> str:
+        model_path = './thsr_ticket/ml/model.pth'
         print("等待驗證碼...")
         book_page = self.client.request_booking_page() #開啟頁面
         img_resp = self.client.request_security_code_img(book_page.content) #獲得照片網址
         image = Image.open(io.BytesIO(img_resp.content)) #透過PIL的Image來儲存驗證碼
+        code = solve_captcha(image, model_path,False)
+        print(code)
         print("輸入驗證碼:")
         img_arr = np.array(image) #用numpy來將圖片轉為array
         plt.imshow(img_arr)
         plt.show() #透過plt來顯示圖面
-        return input() #回傳輸入的驗證碼
+        return code #回傳輸入的驗證碼
+
+
 
     def show_error(self, html: bytes) -> bool:
         errors = self.error_feedback.parse(html)

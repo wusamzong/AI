@@ -35,7 +35,7 @@ def loss_(scores, labels):
     digit4_cross_entropy = torch.nn.functional.cross_entropy(scores[3], labels[:,3])
     return digit1_cross_entropy + digit2_cross_entropy + digit3_cross_entropy + digit4_cross_entropy
 
-def train(path=None, log_path=None):
+def train(path='./checkpoints/CNN_20201227-124335/CNN_20201227-124335_0175_0.66_0.9075.pth', log_path='./log/train_20201227-123014.log'):
     """Train the CNN mode.
 
     Args:
@@ -43,16 +43,17 @@ def train(path=None, log_path=None):
         log_path (str): log_path. default='./log/train_<datetime>.log'
 
     """
-
+    print(torch.cuda.is_available()) 
+    # check cuda is available
     """ ===== Constant var. start ====="""
     train_comment = ''
     pre_process = False
-    use_gpu = True
+    use_gpu = False
     num_workers = 7
-    batch_size = 128
+    batch_size = 100
     lr = 0.001
     lr_decay = 0.9
-    max_epoch = 500
+    max_epoch = 100
     stat_freq = 10
     """ ===== Constant var. end ====="""
 
@@ -71,7 +72,7 @@ def train(path=None, log_path=None):
         log_path = './log/train_{}.log'.format(time_str)
 
     # step1: dataset
-    val_data = Data(train=False, pre_process=pre_process)
+    val_data = Data(train=True, pre_process=pre_process)
     val_dataloader = DataLoader(val_data,
                         100,
                         num_workers=num_workers)
@@ -100,6 +101,9 @@ def train(path=None, log_path=None):
         print(model, file=log_file, flush=True)
         print(model)
         if use_gpu: model.cuda()
+        else:
+            device = torch.device("cpu")
+            model.to(device)
 
         # step3: loss function and optimizer
         criterion = loss_
@@ -118,6 +122,10 @@ def train(path=None, log_path=None):
                 if use_gpu:
                     input = input.cuda()
                     target = target.cuda()
+                else:
+                    device = torch.device("cpu")
+                    input = input.to(device)
+                    target = target.to(device)
                 optimizer.zero_grad()
                 score = model(input)
                 loss = criterion(score,target)
@@ -172,6 +180,9 @@ def val(model, dataloader, use_gpu):
         with torch.no_grad(): # disable autograd
             if use_gpu:
                 input = data.cuda()
+            else:
+                device = torch.device("cpu")
+                input = data.to(device)
             score = model(input)
             tmp = decode(score) == label.numpy()
             result_digit += tmp.tolist()
@@ -182,25 +193,31 @@ def val(model, dataloader, use_gpu):
 
     return np.mean(result_img), np.mean(result_digit)
 
-def test(img_path, model_path, use_gpu = False):
+def test(img_path,img_name, model_path, use_gpu = False):
     """!!! Useless !!!
     """
     model = CNN()
     model.load(model_path)
     if use_gpu: model.cuda()
+    else:
+        device = torch.device("cpu")
+        model.to(device)
     char_table = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     # 把模型设为验证模式
-    from torchvision import transforms as T
-    transforms = T.Compose([
-            T.Resize((128,128)),
-            T.ToTensor(),
-        ])
+    # from torchvision import transforms as T
+    # transforms = T.Compose([
+    #         T.Resize((128,128)),
+    #         T.ToTensor(),
+    #     ])
 
-    data = dataset.transforms(img_path, pre=False).unsqueeze(dim=0)
+    data = dataset.transforms(img_path,img_name, pre=False).unsqueeze(dim=0)
     model.eval()
     with torch.no_grad():
         if use_gpu:
             data = data.cuda()
+        else:
+            device = torch.device("cpu")
+            data = data.to(device)
         score = model(data)
         score = decode(score)
         score = ''.join(map(lambda i: char_table[i], score[0]))
