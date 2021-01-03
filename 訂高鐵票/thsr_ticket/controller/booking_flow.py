@@ -3,6 +3,9 @@ from PIL import Image
 from requests.models import Response
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
+import time
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 from thsr_ticket.remote.http_request import HTTPRequest
 from thsr_ticket.model.web.booking_form.booking_form import BookingForm
@@ -66,7 +69,7 @@ class BookingFlow:
         result = self.client.submit_train(confirm_params) # 將資料傳給伺服器 ->> remote.http_request
         if self.show_error(result.content):
             return result
-
+        time.sleep(3)
         # Third page. Ticket confirmation
         self.set_personal_id() # 顯示&輸入 身份證字號 ->> (view.web.confirm_ticket_info || model.db) && model.web.confirm_ticket
         self.set_phone() # 顯示&輸入 電話號碼 ->> (view.web.confirm_ticket_info || model.db) && model.web.confirm_ticket
@@ -74,7 +77,7 @@ class BookingFlow:
         result = self.client.submit_ticket(ticket_params) # 將資料傳給伺服器 ->> remote.http_request
         if self.show_error(result.content):
             return result
-
+        time.sleep(3)
         result_model = BookingResult().parse(result.content) #爬取訂票結果的資料 -->> view_model.booking_result
         book = ShowBookingResult() #叫出訂票結果的view model -->> view.web.show_booking_result
         book.show(result_model) # 連接 m && vm
@@ -133,11 +136,12 @@ class BookingFlow:
         img_resp = self.client.request_security_code_img(book_page.content) #獲得照片網址
         image = Image.open(io.BytesIO(img_resp.content)) #透過PIL的Image來儲存驗證碼
         code = solve_captcha(image, model_path,False)
+        
+        print("辨識出的驗證碼:")
         print(code)
-        print("輸入驗證碼:")
-        img_arr = np.array(image) #用numpy來將圖片轉為array
-        plt.imshow(img_arr)
-        plt.show() #透過plt來顯示圖面
+        # img_arr = np.array(image) #用numpy來將圖片轉為array
+        # plt.imshow(img_arr)
+        # plt.show() #透過plt來顯示圖面
         return code #回傳輸入的驗證碼
 
 
