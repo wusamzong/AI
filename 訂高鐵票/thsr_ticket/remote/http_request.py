@@ -42,6 +42,7 @@ class HTTPRequest:
         )
 
     def submit_ticket(self, params: Mapping[str, Any]) -> Response:
+        
         return self.sess.post(
             HTTPConfig.CONFIRM_TICKET_URL,
             headers=self.common_head_html,

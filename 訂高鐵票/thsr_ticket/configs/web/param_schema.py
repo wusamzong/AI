@@ -91,7 +91,9 @@ CONFIRM_TICKET_SHEMA: Mapping[str, Any] = {
     "type": "object",
     "properties": {
         "BookingS3FormSP:hf:0": {"type": "string"},
-        "diffOver": {"type": "integer"},
+        "diffOver": {"type": "string"},
+        "isSpromotion": {"type": "string"},
+        "passengerCount": {"type": "string"},
         "idInputRadio": {"type": "string"},
         "idInputRadio:idNumber": {"type": "string"},
         "eaiPhoneCon:phoneInputRadio": {"type": "string"},

@@ -54,9 +54,9 @@ class BookingFlow:
         self.set_outbound_time() # 顯示&輸入 出發時間 ->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
         self.set_adult_ticket_num() # 顯示&輸入 成人票數 -->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
         self.book_form.security_code = self.input_security_code() # 叫出驗證碼 -->> remote.http_request
-
         form_params = self.book_form.get_params() # 將所有剛剛輸入到book_form的資料儲存下來 -->> remote.http_request
         result = self.client.submit_booking_form(form_params) # 將資料傳給伺服器 -->> remote.http_request
+        
         if self.show_error(result.content):
             return result
 
@@ -69,7 +69,7 @@ class BookingFlow:
         result = self.client.submit_train(confirm_params) # 將資料傳給伺服器 ->> remote.http_request
         if self.show_error(result.content):
             return result
-        time.sleep(3)
+        
         # Third page. Ticket confirmation
         self.set_personal_id() # 顯示&輸入 身份證字號 ->> (view.web.confirm_ticket_info || model.db) && model.web.confirm_ticket
         self.set_phone() # 顯示&輸入 電話號碼 ->> (view.web.confirm_ticket_info || model.db) && model.web.confirm_ticket
@@ -77,7 +77,7 @@ class BookingFlow:
         result = self.client.submit_ticket(ticket_params) # 將資料傳給伺服器 ->> remote.http_request
         if self.show_error(result.content):
             return result
-        time.sleep(3)
+        
         result_model = BookingResult().parse(result.content) #爬取訂票結果的資料 -->> view_model.booking_result
         book = ShowBookingResult() #叫出訂票結果的view model -->> view.web.show_booking_result
         book.show(result_model) # 連接 m && vm
