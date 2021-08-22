@@ -12,4 +12,4 @@ if __name__ == "__main__":
     #train = Train().from_json(resp[0])
 
     flow = BookingFlow()
-    result = flow.run()
+    result = flow.mode()

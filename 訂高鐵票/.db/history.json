@@ -3,23 +3,7 @@
         "1": {
             "adult_num": "1F",
             "dest_station": 2,
-            "outbound_time": "1100A",
-            "personal_id": "S125234053",
-            "phone": "0916676603",
-            "start_station": 7
-        },
-        "2": {
-            "adult_num": "1F",
-            "dest_station": 2,
-            "outbound_time": "930P",
-            "personal_id": "S125234053",
-            "phone": "0916676603",
-            "start_station": 7
-        },
-        "3": {
-            "adult_num": "1F",
-            "dest_station": 2,
-            "outbound_time": "500P",
+            "outbound_time": "140P",
             "personal_id": "S125234053",
             "phone": "0916676603",
             "start_station": 7

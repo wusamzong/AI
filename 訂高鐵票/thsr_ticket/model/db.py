@@ -17,6 +17,7 @@ class Record(NamedTuple):
     adult_num: str = None
 
 
+
 class ParamDB:
     def __init__(self, db_path: str = "./.db/history.json"):
         self.db_path = db_path
