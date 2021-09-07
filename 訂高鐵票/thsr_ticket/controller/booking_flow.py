@@ -1,10 +1,12 @@
 import io
 from PIL import Image
 from requests.models import Response
+from subprocess import Popen
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np  # type: ignore
 import time
 import os
+import sys
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 from thsr_ticket.remote.http_request import HTTPRequest
@@ -45,14 +47,16 @@ class BookingFlow:
 
         self.select_hist: int = 0
         self.countinue_choice: bool = True
-        self.date: str = "2021/09/17"
-        self.period:str = "12~16" # 預訂票的時間段
+        self.date: str = "2021/09/21" # 要訂票的日期
+        self.period:str = "10~15" # 預訂票的時間段 ex. 11點~15點
+        self.wait_time: int = 30  # 每次訂票間隔多長(s)
+        
+        self.start_times: int = 0
+        self.limit_times: int = 5
 
     def mode(self) ->None:
         if(self.countinue_choice):
             return self.countinue()
-        else:
-            return self.run_once()
 
         sel = input("要持續訂票嗎？(Y/N): ")
         if(sel == 'Y'):
@@ -108,8 +112,22 @@ class BookingFlow:
         self.show_history() # 顯示歷史紀錄 -->> model.db去獲得歷史紀錄
         self.time_between()
 
-        result = self.page_first()
-        self.page_second(result)
+        while True:
+            result = self.page_first()
+            if self.show_error(result.content):
+                self.progress_bar()
+            else:
+                result = self.page_second(result)
+                if result == None:
+                    self.progress_bar()
+                else:
+
+                    if self.show_error(result.content):
+                        self.progress_bar()
+                    else:
+                        break
+            if(self.start_times >= self.limit_times):
+                return
         
         # Third page. Ticket confirmation
         self.set_personal_id() # 顯示&輸入 身份證字號 ->> (view.web.confirm_ticket_info || model.db) && model.web.confirm_ticket
@@ -125,6 +143,7 @@ class BookingFlow:
         print("\n請使用官方提供的管道完成後續付款以及取票!!")
 
         self.db.save(self.book_form, self.confirm_ticket)
+        os.system("pause")
         return result
 
     def show_history(self) -> None: 
@@ -144,41 +163,51 @@ class BookingFlow:
         return
 
     def page_first(self)->None:
-        while True:
-            # First page. Booking options
-            self.set_start_station() # 顯示&輸入 起始站資訊 ->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
-            self.set_dest_station()  # 顯示&輸入 終點站資訊 ->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
-            self.set_outbound_date() # 顯示&輸入 搭乘日期 -->> view.web.booking_form_info && model.web.booking_form
-            self.set_outbound_time() # 顯示&輸入 出發時間 ->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
-            self.set_adult_ticket_num() # 顯示&輸入 成人票數 -->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
-            self.book_form.security_code = self.input_security_code() # 叫出驗證碼 -->> remote.http_request #辨識驗證碼
-            form_params = self.book_form.get_params() # 將所有剛剛輸入到book_form的資料儲存下來 -->> remote.http_request
-            result = self.client.submit_booking_form(form_params) # 將資料傳給伺服器 -->> remote.http_request
-            
-            if self.show_error(result.content):
-                sleep(30)
-            else:
-                return result
-    
+        # First page. Booking options
+        self.set_start_station() # 顯示&輸入 起始站資訊 ->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
+        self.set_dest_station()  # 顯示&輸入 終點站資訊 ->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
+        self.set_outbound_date() # 顯示&輸入 搭乘日期 -->> view.web.booking_form_info && model.web.booking_form
+        self.set_outbound_time() # 顯示&輸入 出發時間 ->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
+        self.set_adult_ticket_num() # 顯示&輸入 成人票數 -->> (view.web.booking_form_info || model.db) && model.web.booking_form.booking_form
+        self.book_form.security_code = self.input_security_code() # 叫出驗證碼 -->> remote.http_request #辨識驗證碼
+        form_params = self.book_form.get_params() # 將所有剛剛輸入到book_form的資料儲存下來 -->> remote.http_request
+        result = self.client.submit_booking_form(form_params) # 將資料傳給伺服器 -->> remote.http_request
+        return result
+               
     def page_second(self, result)->None:
+        
+        avail_trains = AvailTrains().parse(result.content) # 爬到並儲存有開的的班次的資料 ->> view.web.avail_trains
+        
+        period = self.period
+        sel = self.select_train(avail_trains ,period) # 顯示爬到的班次 或 儲存使用者選擇的班次 ->> view.web.show_avail_trains
+        if(sel is None):
+            return None
+        value = avail_trains[sel-1].form_value  # 找到使用者選擇的班次在html中的value ->> view.web.avail_trains
+        self.confirm_train.selection = value  # 將獲得的資料「偵錯後」儲存在comfirm_train 的 params中 ->> model.web.confirm_train
+        confirm_params = self.confirm_train.get_params() # 將comfirm_train的params取出 ->> model.web.confirm_train
+        result = self.client.submit_train(confirm_params) # 將資料傳給伺服器 ->> remote.http_request
+        return result
+
+
         # Second page. Train confirmation
-        while True:
-            avail_trains = AvailTrains().parse(result.content) # 爬到並儲存有開的的班次的資料 ->> view.web.avail_trains
-            period = self.period
-            sel = self.select_train(avail_trains ,period) # 顯示爬到的班次 或 儲存使用者選擇的班次 ->> view.web.show_avail_trains
-            if(sel is None):
-                sleep(30)
-                result = self.page_first()
-            else:
-                value = avail_trains[sel-1].form_value  # 找到使用者選擇的班次在html中的value ->> view.web.avail_trains
-                self.confirm_train.selection = value  # 將獲得的資料「偵錯後」儲存在comfirm_train 的 params中 ->> model.web.confirm_train
-                confirm_params = self.confirm_train.get_params() # 將comfirm_train的params取出 ->> model.web.confirm_train
-                result = self.client.submit_train(confirm_params) # 將資料傳給伺服器 ->> remote.http_request
-                if self.show_error(result.content):
-                    sleep(30)
-                    result = self.page_first()
-                else:
-                    break
+        # while True:
+        #     avail_trains = AvailTrains().parse(result.content) # 爬到並儲存有開的的班次的資料 ->> view.web.avail_trains
+        #     period = self.period
+        #     sel = self.select_train(avail_trains ,period) # 顯示爬到的班次 或 儲存使用者選擇的班次 ->> view.web.show_avail_trains
+        #     if(sel is None):
+        #         self.progress_bar(self.wait_time)
+        #         result = self.page_first()
+        #     else:
+        #         value = avail_trains[sel-1].form_value  # 找到使用者選擇的班次在html中的value ->> view.web.avail_trains
+        #         self.confirm_train.selection = value  # 將獲得的資料「偵錯後」儲存在comfirm_train 的 params中 ->> model.web.confirm_train
+        #         confirm_params = self.confirm_train.get_params() # 將comfirm_train的params取出 ->> model.web.confirm_train
+        #         result = self.client.submit_train(confirm_params) # 將資料傳給伺服器 ->> remote.http_request
+        #         if self.show_error(result.content):
+        #             self.progress_bar(self.wait_time)
+        #             result = self.page_first()
+        #         else:
+        #             break
+
                     
 
 
@@ -257,5 +286,23 @@ class BookingFlow:
         if len(errors) == 0:
             return False
 
-        self.show_error_msg.show(errors)
+        # self.show_error_msg.show(errors)
         return True
+
+    def progress_bar(self):
+        self.start_times+=1
+        
+        sys.stdout.write("[%s]" % (" " * self.wait_time))
+        sys.stdout.flush()
+        sys.stdout.write("\b" * (self.wait_time+1)) # return to start of line, after '['
+
+        for i in range(self.wait_time):
+            time.sleep(1) # do real work here
+            # update the bar
+            sys.stdout.write("-")
+            sys.stdout.flush()
+
+        sys.stdout.write("]\n") # this ends the progress bar
+        os.system('cls')
+
+        

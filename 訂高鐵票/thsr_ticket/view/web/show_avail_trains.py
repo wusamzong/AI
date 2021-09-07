@@ -43,7 +43,7 @@ class ShowAvailTrains(AbstractShow):
                 dis_str += "大學生{}".format(train.discount["College"])
             
             time = int(train.depart.split(":")[0])
-            if(time>=period[0] & time<=period[1]):
+            if(time>=period[0] and time<=period[1]):
                 return int(idx)
 
 
