@@ -15,6 +15,8 @@ class Record(NamedTuple):
     dest_station: int = None
     outbound_time: str = None
     adult_num: str = None
+    date: str = None
+    depart_time: str = None
 
 
 

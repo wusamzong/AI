@@ -46,9 +46,9 @@ class BookingFlow:
         self.record = Record()
 
         self.select_hist: int = 0
-        self.countinue_choice: bool = True
-        self.date: str = "2021/09/21" # 要訂票的日期
-        self.period:str = "10~15" # 預訂票的時間段 ex. 11點~15點
+        self.countinue_choice: bool = False
+        self.date: str = "2022/1/20" # 要訂票的日期
+        self.period:str = "19~22" # 預訂票的時間段 ex. 11點~15點
         self.wait_time: int = 30  # 每次訂票間隔多長(s)
         
         self.start_times: int = 0
@@ -78,7 +78,6 @@ class BookingFlow:
         self.book_form.security_code = self.input_security_code() # 叫出驗證碼 -->> remote.http_request #辨識驗證碼
         form_params = self.book_form.get_params() # 將所有剛剛輸入到book_form的資料儲存下來 -->> remote.http_request
         result = self.client.submit_booking_form(form_params) # 將資料傳給伺服器 -->> remote.http_request
-        
         if self.show_error(result.content):
             return result
 
@@ -97,6 +96,7 @@ class BookingFlow:
         self.set_phone() # 顯示&輸入 電話號碼 ->> (view.web.confirm_ticket_info || model.db) && model.web.confirm_ticket
         ticket_params = self.confirm_ticket.get_params() # 將資料取出 ->> model.web.confirm_ticket
         result = self.client.submit_ticket(ticket_params) # 將資料傳給伺服器 ->> remote.http_request
+        # print(result.content)
         if self.show_error(result.content):
             return result
         
@@ -105,7 +105,7 @@ class BookingFlow:
         book.show(result_model) # 連接 m && vm
         print("\n請使用官方提供的管道完成後續付款以及取票!!")
 
-        self.db.save(self.book_form, self.confirm_ticket)
+        # self.db.save(self.book_form, self.confirm_ticket)
         return result
 
     def countinue(self) -> Response:
@@ -157,9 +157,9 @@ class BookingFlow:
             self.record = hist[h_idx]
     
     def time_between(self) -> None:
-        if(self.period is not None):
+        if(self.record.depart_time is not None):
             return
-        self.period = input("想要搭乘的時間段：(ex.12~15, enter則不限定時間)")
+        self.record.depart_time = input("想要搭乘的時間段：(ex.12~15, enter則不限定時間)")
         return
 
     def page_first(self)->None:
@@ -177,9 +177,8 @@ class BookingFlow:
     def page_second(self, result)->None:
         
         avail_trains = AvailTrains().parse(result.content) # 爬到並儲存有開的的班次的資料 ->> view.web.avail_trains
-        
-        period = self.period
-        sel = self.select_train(avail_trains ,period) # 顯示爬到的班次 或 儲存使用者選擇的班次 ->> view.web.show_avail_trains
+
+        sel = self.select_train(avail_trains) # 顯示爬到的班次 或 儲存使用者選擇的班次 ->> view.web.show_avail_trains
         if(sel is None):
             return None
         value = avail_trains[sel-1].form_value  # 找到使用者選擇的班次在html中的value ->> view.web.avail_trains
@@ -224,8 +223,8 @@ class BookingFlow:
             self.book_form.dest_station = self.book_info.station_info("到達")
 
     def set_outbound_date(self) -> None:
-        if(self.date is not None):
-            self.book_form.outbound_date = self.date
+        if(self.record.date is not None):
+            self.book_form.outbound_date = self.record.date
             return
         
         if self.book_form.outbound_date is not None:
@@ -246,9 +245,9 @@ class BookingFlow:
             sel = self.book_info.ticket_num_info("大人", default_value=1)
             self.book_form.adult_ticket_num = AdultTicket().get_code(sel) #將數量和票種整理為網站指定的value ex.3張大人=>3F 5張大人=>5F
 
-    def select_train(self, avail_trains, period:str) -> int:
-        if period is not None:
-            return self.show_avail_trains.choice_period(avail_trains, period)
+    def select_train(self, avail_trains) -> int:
+        if self.record.depart_time is not None:
+            return self.show_avail_trains.choice_period(avail_trains, self.record.depart_time)
         else:
             return self.show_avail_trains.show(avail_trains)
 

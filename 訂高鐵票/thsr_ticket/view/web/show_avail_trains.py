@@ -9,7 +9,7 @@ class ShowAvailTrains(AbstractShow):
         if len(trains) == 0:
             print("No available train!")
             return None
-
+        
         for idx, train in enumerate(trains, 1):
             dis_str = ""
             if "Early" in train.discount:

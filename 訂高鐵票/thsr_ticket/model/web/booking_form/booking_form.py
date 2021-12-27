@@ -28,7 +28,7 @@ class BookingForm(AbstractParams):
         self._start_station: int = None  # Required
         self._dest_station: int = None  # Required
         self._class_type: int = 0
-        self._seat_prefer: str = "radio17"
+        self._seat_prefer: str = "radio18"
         self._search_by: int = 0
         self._outbound_date: str = None  # Required
         self._outbound_time: str = None  # Required
@@ -53,7 +53,7 @@ class BookingForm(AbstractParams):
             "bookingMethod": self._search_by,
             "toTimeInputField": self._outbound_date,
             "toTimeTable": self._outbound_time,
-            "toTrainIDInputField": 0,
+            "toTrainIDInputField": "",
             "backTimeInputField": self._inbound_date,
             "backTimeTable": self._inbound_time,
             "backTrainIDInputField": "",
@@ -62,7 +62,13 @@ class BookingForm(AbstractParams):
             "ticketPanel:rows:2:ticketAmount": self._disabled_ticket_num,
             "ticketPanel:rows:3:ticketAmount": self._elder_ticket_num,
             "ticketPanel:rows:4:ticketAmount": self._college_ticket_num,
-            "homeCaptcha:securityCode": self.security_code
+            "homeCaptcha:securityCode": self.security_code,
+            "hideBack": 0,
+            "portalTag": "false",
+            "startTimeForTeenager": "1999/01/01",
+            "endTimeForTeenager": "1999/01/01",
+            "inShowTeenager": 0,
+            "SubmitButton": "開始查詢"
         }
 
         if val:

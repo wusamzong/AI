@@ -18,7 +18,7 @@ BOOKING_SCHEMA: Mapping[str, Any] = {
         },
         "seatCon:seatRadioGroup": {
             "type": "string",  # Seat perference
-            "enum": ["radio17", "radio19", "radio21"]  # None / Window seat / Aisle seat
+            "enum": ["radio17", "radio18", "radio19", "radio21"]  # None / Window seat / Aisle seat
         },
         "bookingMethod": {
             "type": "integer",  # Search seat by...
@@ -35,7 +35,7 @@ BOOKING_SCHEMA: Mapping[str, Any] = {
                 "1100P", "1130P"
             ]
         },
-        "toTrainIDInputField": {"type": "integer"},
+        "toTrainIDInputField": {"type": "string"},
         "backTimeInputField": {"type": "string"},
         "backTimeTable": {
             "type": "string",
@@ -68,7 +68,13 @@ BOOKING_SCHEMA: Mapping[str, Any] = {
             "type": "string",   # College student ticket (Taiwan only)
             "enum": ["0P", "1P", "2P", "3P", "4P", "5P", "6P", "7P", "8P", "9P", "10P"]
         },
-        "homeCaptcha:securityCode": {"type": "string"}
+        "homeCaptcha:securityCode": {"type": "string"},
+        "hideBack":{"type": "integer"},
+        "portalTag":{"type": "string"},
+        "startTimeForTeenager":{"type": "string"},
+        "endTimeForTeenager":{"type": "string"},
+        "inShowTeenager":{"type": "integer"},
+        "SubmitButton":{"type": "string"},
     },
     "required": [
         "selectStartStation", "selectDestinationStation", "toTimeTable",

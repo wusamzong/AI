@@ -10,6 +10,6 @@ if __name__ == "__main__":
     #client = EndpointClient()
     #resp = client.get_trains_by_date("2020-01-25")
     #train = Train().from_json(resp[0])
-
+    print('start')
     flow = BookingFlow()
     result = flow.mode()
